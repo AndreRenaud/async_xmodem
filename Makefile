@@ -3,6 +3,9 @@ LFLAGS=
 
 default: xmodem_server_test
 
+test: xmodem_server_test
+	./xmodem_server_test
+
 xmodem_server_test: xmodem_server_test.o xmodem_server.o
 	$(CC) -o xmodem_server_test xmodem_server_test.o xmodem_server.o
 

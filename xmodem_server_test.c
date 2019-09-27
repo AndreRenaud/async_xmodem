@@ -52,47 +52,62 @@ static void test_simple(void) {
 	TEST_CHECK(xmodem_server_is_done(&xdm));
 }
 
+/**
+ * Spawn a process using fork/exec and get back the file descriptos to
+ * read/write from it
+ */
 static pid_t spawn_process(char * const args[], int *rd_fd, int *wr_fd)
 {
 	pid_t pid;
-	int pipeto[2];      /* pipe to feed the exec'ed program input */
-	int pipefrom[2];    /* pipe to get the exec'ed program output */
+	int pipeto[2];
+	int pipefrom[2];
 
-	if (pipe(pipeto) < 0) {
-		perror( "pipe() to" );
+	if (pipe(pipeto) < 0)
 		return -1;
-	}
 
-	if (pipe(pipefrom ) < 0) {
-		perror( "pipe() from" );
+	if (pipe(pipefrom) < 0) {
+		close(pipeto[0]);
+		close(pipeto[1]);
 		return -1;
 	}
 
 	pid = fork();
 	if  (pid < 0) {
-		perror( "fork() 1" );
+		close(pipeto[0]);
+		close(pipeto[1]);
+		close(pipefrom[0]);
+		close(pipefrom[1]);
 		return -1;
 	}
 
 	if (pid == 0) {
 		/* dup pipe read/write to stdin/stdout */
-		dup2( pipeto[0], STDIN_FILENO );
-		dup2( pipefrom[1], STDOUT_FILENO  );
+		dup2(pipeto[0], STDIN_FILENO);
+		dup2(pipefrom[1], STDOUT_FILENO);
 		/* close unnecessary pipe descriptors for a clean environment */
-		close( pipeto[0] );
-		close( pipeto[1] );
-		close( pipefrom[0] );
-		close( pipefrom[1] );
+		close(pipeto[0]);
+		close(pipeto[1]);
+		close(pipefrom[0]);
+		close(pipefrom[1]);
 		execvp(args[0], args);
 		perror( "execlp()" );
 		return -1;
 	}
 
-	/* Close unused pipe ends. This is especially important for the
-	* pipefrom[1] write descriptor, otherwise readFromPipe will never 
-	* get an EOF. */
-	close( pipeto[0] );
-	close( pipefrom[1] );
+	// Give it a moment to start, and make sure it's ok
+	usleep(100 * 1000);
+	int stat = 0;
+	waitpid(pid, &stat, WNOHANG);
+	if (WIFSIGNALED(stat)) {
+		close(pipeto[0]);
+		close(pipeto[1]);
+		close(pipefrom[0]);
+		close(pipefrom[1]);
+		return -1;
+	}
+
+	close(pipeto[0]);
+	close(pipefrom[1]);
 	*wr_fd = pipeto[1];
 	*rd_fd = pipefrom[0];
 	return pid;
@@ -102,7 +117,6 @@ static void tx_byte_fd(struct xmodem_server *xdm, uint8_t byte, void *cb_data)
 {
 	int *fd = cb_data;
 	write(*fd, &byte, 1);
-	//printf("TX BYTE 0x%x\n", byte);
 }
 
 static int64_t ms_time(void)
@@ -159,9 +173,11 @@ static void test_sz(void) {
 			xmodem_server_tick(&xdm, ms_time());
 		}
 	}
-	wait(NULL);
+	waitpid(pid, NULL, 0);
 	unlink(raw_data_name);
 	TEST_CHECK(memcmp(output_data, input_data, sizeof(input_data)) == 0);
+	close(rd_fd);
+	close(wr_fd);
 }
 
 TEST_LIST = {
