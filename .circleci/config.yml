@@ -15,4 +15,4 @@ jobs:
           command: make
       - run:
           name: Test
-          command: valgrind --leak-check=full --error-exitcode=1 ./xmodem_server_test
+          command: valgrind --leak-check=full --error-exitcode=1 timeout 10 ./xmodem_server_test

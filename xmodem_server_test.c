@@ -94,18 +94,6 @@ static pid_t spawn_process(char * const args[], int *rd_fd, int *wr_fd)
 		return -1;
 	}
 
-	// Give it a moment to start, and make sure it's ok
-	usleep(100 * 1000);
-	int stat = 0;
-	waitpid(pid, &stat, WNOHANG);
-	if (stat) {
-		close(pipeto[0]);
-		close(pipeto[1]);
-		close(pipefrom[0]);
-		close(pipefrom[1]);
-		return -1;
-	}
-
 	close(pipeto[0]);
 	close(pipefrom[1]);
 	*wr_fd = pipeto[1];
@@ -142,6 +130,7 @@ static void test_lsz(void) {
 	int wr_fd, rd_fd;
 	struct xmodem_server xdm;
 	pid_t pid = spawn_process(args, &rd_fd, &wr_fd);
+	uint32_t block_nr;
 	TEST_CHECK(pid >= 0);
 	TEST_CHECK(xmodem_server_init(&xdm, tx_byte_fd, &wr_fd) >= 0);
 
@@ -160,7 +149,6 @@ static void test_lsz(void) {
 
 		if (select(max_fd + 1, &rd_fds, &wr_fds, NULL, &tv) >= 0) {
 			uint8_t resp[XMODEM_PACKET_SIZE];
-			uint32_t block_nr;
 			if (FD_ISSET(rd_fd, &rd_fds)) {
 				uint8_t buffer[32];
 				size_t count = read(rd_fd, buffer, sizeof(buffer));
@@ -173,6 +161,8 @@ static void test_lsz(void) {
 			xmodem_server_tick(&xdm, ms_time());
 		}
 	}
+	TEST_CHECK(xmodem_server_get_state(&xdm) == XMODEM_STATE_SUCCESSFUL);
+	TEST_CHECK(block_nr + 1 == sizeof(input_data) / XMODEM_PACKET_SIZE);
 	waitpid(pid, NULL, 0);
 	unlink(raw_data_name);
 	TEST_CHECK(memcmp(output_data, input_data, sizeof(input_data)) == 0);
