@@ -1,0 +1,16 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: alpine:3.10
+    steps:
+      - checkout
+      - run:
+          name: Install tools
+          command: apk add --no-progress --no-cache gcc make valgrind libc-dev
+      - run:
+          name: Make
+          command: make
+      - run:
+          name: Test
+          command: valgrind ./xmodem_server_test
