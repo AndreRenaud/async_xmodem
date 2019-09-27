@@ -9,7 +9,12 @@
 #define XMODEM_SOH 0x01
 #define XMODEM_EOT 0x04
 #define XMODEM_ACK 0x06
-#define XMODEM_NACK 0x17
+#define XMODEM_NACK 0x15
+
+#define XMODEM_PACKET_SIZE 128
+// How many milliseconds do we have to wait for a packet to arrive before
+// we send a NAK & restart the transfer
+#define XMODEM_PACKET_TIMEOUT 2000
 
 typedef enum {
 	XMODEM_STATE_START,
@@ -25,8 +30,6 @@ typedef enum {
 
 	XMODEM_STATE_COUNT,
 } xmodem_server_state;
-
-#define XMODEM_PACKET_SIZE 128
 
 struct xmodem_server;
 
@@ -45,6 +48,7 @@ struct xmodem_server {
 	int64_t last_event_time; // When did we last do something interesting?
 	uint32_t block_num; // What block are we up to?
 	bool repeating; // Are we receiving a packet that we've already processed?
+	uint32_t error_count; // How many errors have we seen?
 	xmodem_tx_byte tx_byte;
 	void *cb_data;
 };
@@ -82,11 +86,25 @@ static inline xmodem_server_state xmodem_server_get_state(struct xmodem_server *
 	return xdm->state;
 }
 const char *xmodem_server_state_name(struct xmodem_server *xdm);
-int xmodem_server_tick(struct xmodem_server *xdm, int64_t ms_time);
 
-static inline bool xmodem_server_get_packet(struct xmodem_server *xdm, uint8_t *packet, uint32_t *block_num) {
+static inline bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t *block_num, int64_t ms_time) {
+	// Avoid confusion with 0 default value
+	if (ms_time == 0)
+		ms_time = 1;
+	if (xdm->state == XMODEM_STATE_START &&
+		(xdm->last_event_time == 0 || ms_time - xdm->last_event_time > 500)) {
+		xdm->tx_byte(xdm, 'C', xdm->cb_data);
+		xdm->last_event_time = ms_time;
+	}
+	if (xdm->last_event_time != 0 && ms_time - xdm->last_event_time > XMODEM_PACKET_TIMEOUT) {
+		printf("Timeout - nak\n");
+		xdm->state = XMODEM_STATE_SOH;
+		xdm->tx_byte(xdm, XMODEM_NACK, xdm->cb_data);
+		xdm->last_event_time = ms_time;
+	}
 	if (xdm->state != XMODEM_STATE_PROCESS_PACKET)
 		return false;
+	xdm->last_event_time = ms_time;
 	memcpy(packet, xdm->packet_data, XMODEM_PACKET_SIZE);
 	*block_num = xdm->block_num;
 	xdm->block_num++;

@@ -18,13 +18,12 @@ static const char *state_name(xmodem_server_state state) {
 }
 
 bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte) {
-	//printf("Got char 0x%x in state %s[%d]\n", byte, state_name(xdm->state), xdm->state);
 	switch (xdm->state) {
 	case XMODEM_STATE_START:
 	case XMODEM_STATE_SOH:
 		if (byte == XMODEM_SOH)
 			xdm->state = XMODEM_STATE_BLOCK_NUM;
-		if (byte == XMODEM_EOT) {
+		else if (byte == XMODEM_EOT) {
 			xdm->state = XMODEM_STATE_SUCCESSFUL;
 			xdm->tx_byte(xdm, XMODEM_ACK, xdm->cb_data);
 		}
@@ -33,8 +32,7 @@ bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte) {
 		if (byte == ((xdm->block_num + 1) & 0xff)) {
 			xdm->state = XMODEM_STATE_BLOCK_NEG;
 			xdm->repeating = false;
-		}
-		else if (byte == (xdm->block_num & 0xff)) {
+		} else if (byte == (xdm->block_num & 0xff)) {
 			xdm->state = XMODEM_STATE_BLOCK_NEG;
 			xdm->repeating = true;
 		} else {
@@ -71,8 +69,12 @@ bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte) {
 		for (int i = 0; i < XMODEM_PACKET_SIZE; i++)
 			crc = xmodem_server_crc(crc, xdm->packet_data[i]);
 		if (crc != xdm->crc) {
+			xdm->error_count++;
 			xdm->state = XMODEM_STATE_SOH;
 			xdm->tx_byte(xdm, XMODEM_NACK, xdm->cb_data);
+		} else if (xdm->repeating) {
+			//xdm->tx_byte(xdm, XMODEM_ACK, xdm->cb_data);
+			xdm->state = XMODEM_STATE_SOH;
 		} else {
 			xdm->state = XMODEM_STATE_PROCESS_PACKET;
 		}
@@ -82,22 +84,8 @@ bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte) {
 	default:
 		break;
 	}
-	//printf("Moved to state %s[%d]\n", state_name(xdm->state), xdm->state);
 
 	return (xdm->state == XMODEM_STATE_PROCESS_PACKET);
-}
-
-int xmodem_server_tick(struct xmodem_server *xdm, int64_t ms_time)
-{
-	// Avoid confusion about legitimate '0' times
-	if (ms_time == 0)
-		ms_time = 1;
-	if (xdm->state == XMODEM_STATE_START &&
-		(xdm->last_event_time == 0 || ms_time - xdm->last_event_time > 500)) {
-		xdm->tx_byte(xdm, 'C', xdm->cb_data);
-		xdm->last_event_time = ms_time;
-	}
-	return 0;
 }
 
 const char *xmodem_server_state_name(struct xmodem_server *xdm)

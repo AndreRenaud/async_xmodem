@@ -6,6 +6,9 @@ default: xmodem_server_test
 test: xmodem_server_test
 	./xmodem_server_test
 
+infinite_test: xmodem_server_test
+	while : ; do ./xmodem_server_test || break ; done
+
 xmodem_server_test: xmodem_server_test.o xmodem_server.o
 	$(CC) -o xmodem_server_test xmodem_server_test.o xmodem_server.o
 

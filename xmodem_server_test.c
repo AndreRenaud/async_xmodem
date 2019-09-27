@@ -29,6 +29,13 @@ static bool rx_packet(struct xmodem_server *xdm, uint8_t *data, int data_len, in
 	return xmodem_server_rx_byte(xdm, crc & 0xff);
 }
 
+static int64_t ms_time(void)
+{
+	struct timeval  tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
+
 static void test_simple(void) {
 	struct xmodem_server xdm;
 	uint8_t tx_char = 0;
@@ -42,7 +49,7 @@ static void test_simple(void) {
 		TEST_CHECK(rx_packet(&xdm, data, sizeof(data), i));
 		// Should be fine to receive the same packet twice
 		TEST_CHECK(rx_packet(&xdm, data, sizeof(data), i));
-		TEST_CHECK(xmodem_server_get_packet(&xdm, resp, &block_nr));
+		TEST_CHECK(xmodem_server_process(&xdm, resp, &block_nr, ms_time()));
 		TEST_CHECK(memcmp(data, resp, sizeof(data)) == 0);
 		TEST_CHECK(block_nr == i);
 		TEST_CHECK(tx_char == 0x06); // We received an ack
@@ -94,6 +101,8 @@ static pid_t spawn_process(char * const args[], int *rd_fd, int *wr_fd)
 		return -1;
 	}
 
+	usleep(rand() % 1000000);
+
 	close(pipeto[0]);
 	close(pipefrom[1]);
 	*wr_fd = pipeto[1];
@@ -105,13 +114,6 @@ static void tx_byte_fd(struct xmodem_server *xdm, uint8_t byte, void *cb_data)
 {
 	int *fd = cb_data;
 	write(*fd, &byte, 1);
-}
-
-static int64_t ms_time(void)
-{
-	struct timeval  tv;
-	gettimeofday(&tv, NULL);
-	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
 static void test_lsz(void) {
@@ -152,19 +154,24 @@ static void test_lsz(void) {
 			if (FD_ISSET(rd_fd, &rd_fds)) {
 				uint8_t buffer[32];
 				size_t count = read(rd_fd, buffer, sizeof(buffer));
-				for (size_t i = 0; i < count; i++)
+				for (size_t i = 0; i < count; i++) {
 					xmodem_server_rx_byte(&xdm, buffer[i]);
+				}
 			}
-			if (xmodem_server_get_packet(&xdm, resp, &block_nr)) {
+			if (xmodem_server_process(&xdm, resp, &block_nr, ms_time())) {
 				memcpy(&output_data[block_nr * XMODEM_PACKET_SIZE], resp, XMODEM_PACKET_SIZE);
 			}
-			xmodem_server_tick(&xdm, ms_time());
 		}
 	}
 	TEST_CHECK(xmodem_server_get_state(&xdm) == XMODEM_STATE_SUCCESSFUL);
 	TEST_CHECK(block_nr + 1 == sizeof(input_data) / XMODEM_PACKET_SIZE);
 	waitpid(pid, NULL, 0);
 	unlink(raw_data_name);
+	for (int i = 0; i < sizeof(input_data); i++) {
+		if (output_data[i] != input_data[i]) {
+			fprintf(stderr, "Diff at %d: 0x%x != 0x%x\n", i, output_data[i], input_data[i]);
+		}
+	}
 	TEST_CHECK(memcmp(output_data, input_data, sizeof(input_data)) == 0);
 	close(rd_fd);
 	close(wr_fd);
