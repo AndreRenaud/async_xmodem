@@ -126,7 +126,7 @@ static int64_t ms_time(void)
 	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
-static void test_sz(void) {
+static void test_lsz(void) {
 	uint8_t output_data[4096] = {};
 	uint8_t input_data[4096];
 	for (int i = 0; i < 4096; i++) {
@@ -138,7 +138,7 @@ static void test_sz(void) {
 	FILE *fp = fopen(raw_data_name, "wb");
 	TEST_CHECK(fwrite(input_data, sizeof(input_data), 1, fp) == 1);
 	fclose(fp);
-	char * const args[] = {"sz", "--xmodem", "--quiet", raw_data_name, NULL};
+	char * const args[] = {"lsz", "--xmodem", "--quiet", raw_data_name, NULL};
 	int wr_fd, rd_fd;
 	struct xmodem_server xdm;
 	pid_t pid = spawn_process(args, &rd_fd, &wr_fd);
@@ -182,6 +182,6 @@ static void test_sz(void) {
 
 TEST_LIST = {
 	{"simple", test_simple},
-	{"sz", test_sz},
+	{"lsz", test_lsz},
 	{NULL, NULL},
 };
