@@ -7,7 +7,9 @@ jobs:
       - checkout
       - run:
           name: Install tools
-          command: apk add --no-progress --no-cache gcc make valgrind libc-dev lrzsz
+          command: |
+            apk add --no-progress --no-cache gcc make valgrind libc-dev
+            apk add lrzsz --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing
       - run:
           name: Make
           command: make
