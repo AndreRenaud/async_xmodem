@@ -1,20 +1,10 @@
 #ifndef XMODEM_SERVER_H
 #define XMODEM_SERVER_H
 
-#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <string.h>
-
-#define XMODEM_SOH 0x01
-#define XMODEM_EOT 0x04
-#define XMODEM_ACK 0x06
-#define XMODEM_NACK 0x15
 
 #define XMODEM_PACKET_SIZE 128
-// How many milliseconds do we have to wait for a packet to arrive before
-// we send a NAK & restart the transfer
-#define XMODEM_PACKET_TIMEOUT 2000
 
 typedef enum {
 	XMODEM_STATE_START,
@@ -53,68 +43,18 @@ struct xmodem_server {
 	void *cb_data;
 };
 
-static inline int xmodem_server_init(struct xmodem_server *xdm, xmodem_tx_byte tx_byte, void *cb_data) {
-	if (tx_byte == NULL)
-		return -1;
-	memset(xdm, 0, sizeof(*xdm));
-	xdm->tx_byte = tx_byte;
-	xdm->cb_data = cb_data;
-
-	xdm->tx_byte(xdm, 'C', xdm->cb_data);
-
-	return 0;
-}
-
-static inline uint16_t xmodem_server_crc(uint16_t crc, uint8_t byte)
-{
-	crc = crc ^ ((uint16_t)byte) << 8;
-	for (int i = 8; i > 0; i--) {
-		if (crc & 0x8000)
-			crc = crc << 1 ^ 0x1021;
-		else
-			crc = crc << 1;
-	}
-	return crc;
-}
+int xmodem_server_init(struct xmodem_server *xdm, xmodem_tx_byte tx_byte, void *cb_data);
 
 /**
  * Send a single byte to the xmodem state machine
  * @returns true if a packet is now available for processing, false if more data is needed
  */
 bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte);
-static inline xmodem_server_state xmodem_server_get_state(struct xmodem_server *xdm) {
-	return xdm->state;
-}
-const char *xmodem_server_state_name(struct xmodem_server *xdm);
+xmodem_server_state xmodem_server_get_state(const struct xmodem_server *xdm);
+const char *xmodem_server_state_name(const struct xmodem_server *xdm);
+uint16_t xmodem_server_crc(uint16_t crc, uint8_t byte);
 
-static inline bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t *block_num, int64_t ms_time) {
-	// Avoid confusion with 0 default value
-	if (ms_time == 0)
-		ms_time = 1;
-	if (xdm->state == XMODEM_STATE_START &&
-		(xdm->last_event_time == 0 || ms_time - xdm->last_event_time > 500)) {
-		xdm->tx_byte(xdm, 'C', xdm->cb_data);
-		xdm->last_event_time = ms_time;
-	}
-	if (xdm->last_event_time != 0 && ms_time - xdm->last_event_time > XMODEM_PACKET_TIMEOUT) {
-		printf("Timeout - nak\n");
-		xdm->state = XMODEM_STATE_SOH;
-		xdm->tx_byte(xdm, XMODEM_NACK, xdm->cb_data);
-		xdm->last_event_time = ms_time;
-	}
-	if (xdm->state != XMODEM_STATE_PROCESS_PACKET)
-		return false;
-	xdm->last_event_time = ms_time;
-	memcpy(packet, xdm->packet_data, XMODEM_PACKET_SIZE);
-	*block_num = xdm->block_num;
-	xdm->block_num++;
-	xdm->state = XMODEM_STATE_SOH;
-	xdm->tx_byte(xdm, XMODEM_ACK, xdm->cb_data);
-	return true;
-}
-
-static inline bool xmodem_server_is_done(struct xmodem_server *xdm) {
-	return xdm->state == XMODEM_STATE_SUCCESSFUL || xdm->state == XMODEM_STATE_FAILURE;
-}
+bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t *block_num, int64_t ms_time);
+bool xmodem_server_is_done(const struct xmodem_server *xdm);
 
 #endif
