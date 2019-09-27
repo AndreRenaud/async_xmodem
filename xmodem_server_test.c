@@ -98,7 +98,7 @@ static pid_t spawn_process(char * const args[], int *rd_fd, int *wr_fd)
 	usleep(100 * 1000);
 	int stat = 0;
 	waitpid(pid, &stat, WNOHANG);
-	if (WIFSIGNALED(stat)) {
+	if (stat) {
 		close(pipeto[0]);
 		close(pipeto[1]);
 		close(pipefrom[0]);
