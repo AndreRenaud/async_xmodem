@@ -5,7 +5,8 @@ This is a minimal C implementation of the XModem transfer protocol.
 It is designed to be used in bare-metal embedded systems with no
 underlying operating system. It is asynchonous (non-blocking), and
 all data is either directly supplied or sent out via callbacks,
-with no OS-level dependencies.
+with no OS-level dependencies. It does not allocate any dynamic memory,
+using only 160B of memory while the transfer is in progress
 
 ## Usage
 This is a simple single .c & .h file, designed to be directly imported into
