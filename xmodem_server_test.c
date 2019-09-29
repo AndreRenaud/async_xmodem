@@ -74,25 +74,44 @@ static void test_errors(void) {
 	int attempts = 0;
 
 	TEST_CHECK(xmodem_server_init(&xdm, tx_byte, &tx_char) >= 0);
-	for (uint32_t i = 0; i < 5; ) {
+	for (uint32_t i = 0; i < 5 && !xmodem_server_is_done(&xdm); ) {
 		uint8_t data[XMODEM_PACKET_SIZE];
 		uint8_t resp[XMODEM_PACKET_SIZE];
 		uint32_t block_nr;
 		memset(data, i, sizeof(data));
 		tx_char = 0;
 		// Inject 1:1000 rate of bad data bytes
-		rx_packet(&xdm, data, sizeof(data), i, 100);
-		xmodem_server_process(&xdm, resp, &block_nr, ms_time());
-		attempts++;
-		//printf("tx char: 0x%x\n", tx_char);
-		if (tx_char == 0x06) { // ACK
+		rx_packet(&xdm, data, sizeof(data), i, 1000);
+		if (xmodem_server_process(&xdm, resp, &block_nr, ms_time())) {
 			TEST_CHECK(memcmp(data, resp, sizeof(data)) == 0);
 			TEST_CHECK(block_nr == i);
 			i++;
 		}
+		attempts++;
 	}
 	xmodem_server_rx_byte(&xdm, 0x04);
+	TEST_CHECK(xmodem_server_get_state(&xdm) == XMODEM_STATE_SUCCESSFUL);
 	TEST_CHECK(xmodem_server_is_done(&xdm));
+}
+
+static void test_timeout(void) {
+	struct xmodem_server xdm;
+	uint8_t tx_char = 0;
+	TEST_CHECK(xmodem_server_init(&xdm, tx_byte, &tx_char) >= 0);
+
+	// Transmit 1 packet so we're not in the initial phase
+	uint8_t data[XMODEM_PACKET_SIZE] = {0};
+	rx_packet(&xdm, data, sizeof(data), 0, 100);
+
+	// We expect a packet every second, and currently limit ourselves to 10 errors
+	// so after 11 seconds we should be broken
+	for (int64_t start = 1; start < 11000; start++) {
+		uint8_t resp[XMODEM_PACKET_SIZE];
+		uint32_t block_nr;
+		xmodem_server_process(&xdm, resp, &block_nr, start);
+	}
+	// The system should timeout
+	TEST_CHECK(xmodem_server_get_state(&xdm) == XMODEM_STATE_FAILURE);
 }
 
 /**
@@ -149,8 +168,10 @@ static pid_t spawn_process(char * const args[], int *rd_fd, int *wr_fd)
 static void tx_byte_fd(struct xmodem_server *xdm, uint8_t byte, void *cb_data)
 {
 	int *fd = cb_data;
+	int r;
 	(void)xdm;
-	write(*fd, &byte, 1);
+	r = write(*fd, &byte, 1);
+	(void)r;
 }
 
 static void test_lsz(void) {
@@ -217,6 +238,7 @@ static void test_lsz(void) {
 TEST_LIST = {
 	{"simple", test_simple},
 	{"errors", test_errors},
+	{"timeout", test_timeout},
 	{"lsz", test_lsz},
 	{NULL, NULL},
 };

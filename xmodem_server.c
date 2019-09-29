@@ -10,7 +10,11 @@
 
 // How many milliseconds do we have to wait for a packet to arrive before
 // we send a NAK & restart the transfer
-#define XMODEM_PACKET_TIMEOUT 2000
+#define XMODEM_PACKET_TIMEOUT 1000
+
+// How many errors during the transfer before we just fail
+// TODO: Could this be configurable
+#define XMODEM_MAX_ERRORS 10
 
 static const char *state_name(xmodem_server_state state) {
 	#define XDMSTAT(a) case XMODEM_STATE_ ##a: return #a
@@ -134,7 +138,13 @@ xmodem_server_state xmodem_server_get_state(const struct xmodem_server *xdm) {
 	return xdm->state;
 }
 
+bool xmodem_server_is_done(const struct xmodem_server *xdm) {
+	return xdm->state == XMODEM_STATE_SUCCESSFUL || xdm->state == XMODEM_STATE_FAILURE;
+}
+
 bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t *block_num, int64_t ms_time) {
+	if (xmodem_server_is_done(xdm))
+		return false;
 	// Avoid confusion with 0 default value
 	if (ms_time == 0)
 		ms_time = 1;
@@ -149,6 +159,10 @@ bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t 
 		xdm->tx_byte(xdm, XMODEM_NACK, xdm->cb_data);
 		xdm->last_event_time = ms_time;
 	}
+	if (xdm->error_count >= XMODEM_MAX_ERRORS) {
+		xdm->state = XMODEM_STATE_FAILURE;
+		xdm->last_event_time = ms_time;
+	}
 	if (xdm->state != XMODEM_STATE_PROCESS_PACKET)
 		return false;
 	xdm->last_event_time = ms_time;
@@ -158,8 +172,4 @@ bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t 
 	xdm->state = XMODEM_STATE_SOH;
 	xdm->tx_byte(xdm, XMODEM_ACK, xdm->cb_data);
 	return true;
-}
-
-bool xmodem_server_is_done(const struct xmodem_server *xdm) {
-	return xdm->state == XMODEM_STATE_SUCCESSFUL || xdm->state == XMODEM_STATE_FAILURE;
 }
