@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <string.h>
 
 #include "xmodem_server.h"
@@ -120,7 +119,7 @@ const char *xmodem_server_state_name(const struct xmodem_server *xdm)
 }
 
 int xmodem_server_init(struct xmodem_server *xdm, xmodem_tx_byte tx_byte, void *cb_data) {
-	if (tx_byte == NULL)
+	if (!tx_byte)
 		return -1;
 	memset(xdm, 0, sizeof(*xdm));
 	xdm->tx_byte = tx_byte;

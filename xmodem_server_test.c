@@ -7,6 +7,7 @@
 static void tx_byte(struct xmodem_server *xdm, uint8_t byte, void *cb_data)
 {
 	uint8_t *buf = cb_data;
+	(void)xdm;
 	*buf = byte;
 }
 
@@ -44,7 +45,7 @@ static void test_simple(void) {
 	uint8_t tx_char = 0;
 
 	TEST_CHECK(xmodem_server_init(&xdm, tx_byte, &tx_char) >= 0);
-	for (int i = 0; i < 5; i++) {
+	for (uint32_t i = 0; i < 5; i++) {
 		uint8_t data[XMODEM_PACKET_SIZE];
 		uint8_t resp[XMODEM_PACKET_SIZE];
 		uint32_t block_nr;
@@ -68,7 +69,7 @@ static void test_errors(void) {
 	int attempts = 0;
 
 	TEST_CHECK(xmodem_server_init(&xdm, tx_byte, &tx_char) >= 0);
-	for (int i = 0; i < 5; ) {
+	for (uint32_t i = 0; i < 5; ) {
 		uint8_t data[XMODEM_PACKET_SIZE];
 		uint8_t resp[XMODEM_PACKET_SIZE];
 		uint32_t block_nr;
@@ -143,11 +144,12 @@ static pid_t spawn_process(char * const args[], int *rd_fd, int *wr_fd)
 static void tx_byte_fd(struct xmodem_server *xdm, uint8_t byte, void *cb_data)
 {
 	int *fd = cb_data;
+	(void)xdm;
 	write(*fd, &byte, 1);
 }
 
 static void test_lsz(void) {
-	uint8_t output_data[4096] = {};
+	uint8_t output_data[4096] = {0};
 	uint8_t input_data[4096];
 	for (int i = 0; i < 4096; i++) {
 		input_data[i] = rand();
@@ -197,7 +199,7 @@ static void test_lsz(void) {
 	TEST_CHECK(block_nr + 1 == sizeof(input_data) / XMODEM_PACKET_SIZE);
 	waitpid(pid, NULL, 0);
 	unlink(raw_data_name);
-	for (int i = 0; i < sizeof(input_data); i++) {
+	for (uint32_t i = 0; i < sizeof(input_data); i++) {
 		if (output_data[i] != input_data[i]) {
 			fprintf(stderr, "Diff at %d: 0x%x != 0x%x\n", i, output_data[i], input_data[i]);
 		}
