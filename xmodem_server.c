@@ -7,6 +7,7 @@
 #define XMODEM_EOT 0x04
 #define XMODEM_ACK 0x06
 #define XMODEM_NACK 0x15
+#define XMODEM_CAN 0x18
 
 // How many milliseconds do we have to wait for a packet to arrive before
 // we send a NAK & restart the transfer
@@ -161,6 +162,7 @@ bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t 
 	}
 	if (xdm->error_count >= XMODEM_MAX_ERRORS) {
 		xdm->state = XMODEM_STATE_FAILURE;
+		xdm->tx_byte(xdm, XMODEM_CAN, xdm->cb_data);
 		xdm->last_event_time = ms_time;
 	}
 	if (xdm->state != XMODEM_STATE_PROCESS_PACKET)
