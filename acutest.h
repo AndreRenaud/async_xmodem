@@ -474,6 +474,7 @@ test_print_in_color__(int color, const char* fmt, ...)
         return n;
     }
 #else
+    (void)color;
     n = printf("%s", buffer);
     return n;
 #endif

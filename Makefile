@@ -1,4 +1,4 @@
-CFLAGS=-g -Wall -pipe --std=c1x -O3 -pedantic -Wextra -Werror -D_BSD_SOURCE
+CFLAGS=-g -Wall -pipe --std=c1x -O3 -pedantic -Wextra -Werror
 LFLAGS=
 
 default: xmodem_server_test

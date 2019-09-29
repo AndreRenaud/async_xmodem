@@ -1,6 +1,10 @@
+#define _DEFAULT_SOURCE
+
 #include <unistd.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "xmodem_server.h"
 #include "acutest.h"
@@ -200,9 +204,9 @@ static void test_lsz(void) {
 	TEST_CHECK(block_nr + 1 == sizeof(input_data) / XMODEM_PACKET_SIZE);
 	waitpid(pid, NULL, 0);
 	unlink(raw_data_name);
-	for (uint32_t i = 0; i < sizeof(input_data); i++) {
+	for (unsigned i = 0; i < sizeof(input_data); i++) {
 		if (output_data[i] != input_data[i]) {
-			fprintf(stderr, "Diff at %d: 0x%x != 0x%x\n", i, output_data[i], input_data[i]);
+			fprintf(stderr, "Diff at %u: 0x%x != 0x%x\n", i, output_data[i], input_data[i]);
 		}
 	}
 	TEST_CHECK(memcmp(output_data, input_data, sizeof(input_data)) == 0);
