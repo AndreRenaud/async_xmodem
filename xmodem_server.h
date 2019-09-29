@@ -1,3 +1,10 @@
+/**
+ * Implementation of the receiver side of the XModem data transfer protocol
+ * This implementation has been done as an asynchronous system, so there
+ * are no blocking read calls.
+ * It does not allocate any dynamic memory, using only ~160B of memory
+ * while the transfer is in progress
+ */
 #ifndef XMODEM_SERVER_H
 #define XMODEM_SERVER_H
 
@@ -41,9 +48,9 @@ struct xmodem_server {
 	uint8_t packet_data[XMODEM_PACKET_SIZE]; // Incoming packet data
 	int packet_pos; // Where are we up to in this packet
 	uint16_t crc; // Whatis the expected CRC of the incoming packet
+	bool repeating; // Are we receiving a packet that we've already processed?
 	int64_t last_event_time; // When did we last do something interesting?
 	uint32_t block_num; // What block are we up to?
-	bool repeating; // Are we receiving a packet that we've already processed?
 	uint32_t error_count; // How many errors have we seen?
 	xmodem_tx_byte tx_byte;
 	void *cb_data;
