@@ -1,5 +1,6 @@
 #include <sys/select.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "xmodem_server.h"
 #include "acutest.h"
@@ -161,7 +162,7 @@ static void test_lsz(void) {
 	TEST_CHECK(fwrite(input_data, sizeof(input_data), 1, fp) == 1);
 	fclose(fp);
 	char * const args[] = {"lsz", "--xmodem", "--quiet", raw_data_name, NULL};
-	int wr_fd, rd_fd;
+	int wr_fd = -1, rd_fd = -1;
 	struct xmodem_server xdm;
 	pid_t pid = spawn_process(args, &rd_fd, &wr_fd);
 	uint32_t block_nr;
