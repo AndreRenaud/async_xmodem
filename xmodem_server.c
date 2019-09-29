@@ -149,12 +149,14 @@ bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t 
 	// Avoid confusion with 0 default value
 	if (ms_time == 0)
 		ms_time = 1;
-	if (xdm->state == XMODEM_STATE_START &&
-		(xdm->last_event_time == 0 || ms_time - xdm->last_event_time > 500)) {
+	// Initialise our timer
+	if (xdm->last_event_time == 0)
+		xdm->last_event_time = ms_time;
+	if (xdm->state == XMODEM_STATE_START && ms_time - xdm->last_event_time > 500) {
 		xdm->tx_byte(xdm, 'C', xdm->cb_data);
 		xdm->last_event_time = ms_time;
 	}
-	if (xdm->last_event_time != 0 && ms_time - xdm->last_event_time > XMODEM_PACKET_TIMEOUT) {
+	if (ms_time - xdm->last_event_time > XMODEM_PACKET_TIMEOUT) {
 		xdm->error_count++;
 		xdm->state = XMODEM_STATE_SOH;
 		xdm->tx_byte(xdm, XMODEM_NACK, xdm->cb_data);

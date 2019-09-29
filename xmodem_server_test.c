@@ -111,6 +111,7 @@ static void test_timeout(void) {
 		xmodem_server_process(&xdm, resp, &block_nr, start);
 	}
 	// The system should timeout
+	TEST_CHECK(xmodem_server_is_done(&xdm));
 	TEST_CHECK(xmodem_server_get_state(&xdm) == XMODEM_STATE_FAILURE);
 }
 
