@@ -8,7 +8,7 @@ jobs:
       - run:
           name: Install tools
           command: |
-            apk add --no-progress --no-cache gcc make valgrind libc-dev ca-certificates
+            apk add --no-progress --no-cache gcc make valgrind libc-dev ca-certificates cppcheck
             apk add --no-progress --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing lrzsz
       - run:
           name: Make
