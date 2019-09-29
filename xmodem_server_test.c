@@ -1,6 +1,6 @@
+#include <unistd.h>
 #include <sys/select.h>
 #include <sys/time.h>
-#include <unistd.h>
 
 #include "xmodem_server.h"
 #include "acutest.h"
