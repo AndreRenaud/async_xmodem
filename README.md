@@ -1,4 +1,6 @@
 # Asynchonous XModem Receiver
+[![CircleCI](https://circleci.com/gh/AndreRenaud/async_xmodem.svg?style=svg)](https://circleci.com/gh/AndreRenaud/async_xmodem)
+
 This is a minimal C implementation of the XModem transfer protocol.
 It is designed to be used in bare-metal embedded systems with no
 underlying operating system. It is asynchonous (non-blocking), and
