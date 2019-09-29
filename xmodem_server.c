@@ -28,6 +28,7 @@ static const char *state_name(xmodem_server_state state) {
 		XDMSTAT(FAILURE);
 		default: return "UNKNOWN";
 	}
+	#undef XDMSTAT
 }
 
 uint16_t xmodem_server_crc(uint16_t crc, uint8_t byte)
@@ -144,7 +145,7 @@ bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t 
 		xdm->last_event_time = ms_time;
 	}
 	if (xdm->last_event_time != 0 && ms_time - xdm->last_event_time > XMODEM_PACKET_TIMEOUT) {
-		printf("Timeout - nak\n");
+		xdm->error_count++;
 		xdm->state = XMODEM_STATE_SOH;
 		xdm->tx_byte(xdm, XMODEM_NACK, xdm->cb_data);
 		xdm->last_event_time = ms_time;
