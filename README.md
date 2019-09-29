@@ -1,24 +1,26 @@
 # Asynchonous XModem Receiver
 [![CircleCI](https://circleci.com/gh/AndreRenaud/async_xmodem.svg?style=svg)](https://circleci.com/gh/AndreRenaud/async_xmodem)
 
-This is a minimal C implementation of the XModem transfer protocol.
+This is a minimal C implementation of the 
+[XModem](https://en.wikipedia.org/wiki/XMODEM) transfer protocol.
 It is designed to be used in bare-metal embedded systems with no
 underlying operating system. It is asynchonous (non-blocking), and
 all data is either directly supplied or sent out via callbacks,
 with no OS-level dependencies. It does not allocate any dynamic memory,
-using only 160B of memory while the transfer is in progress
+using only 164B of memory while the transfer is in progress, with a very
+shallow stack (3-calls deep maximum).
 
 ## Usage
 This is a simple single .c & .h file, designed to be directly imported into
 most existing code bases without issue.
 
 For most usage, there are four functions which are of interest
-* xmodem_server_init - initialise the state, and provide the callback for
+* `xmodem_server_init` - initialise the state, and provide the callback for
 transmitting individual response bytes
-* xmodem_server_process - check for timeouts, and extra the next packet
+* `xmodem_server_process` - check for timeouts, and extra the next packet
 if available
-* xmodem_server_is_done - indicates when the transfer is completed
-* xmodem_server_get_state - get the specific state of the transfer
+* `xmodem_server_is_done` - indicates when the transfer is completed
+* `xmodem_server_get_state` - get the specific state of the transfer
 (including success/failure)
 
 ## Example
