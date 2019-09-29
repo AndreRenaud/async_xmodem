@@ -6,6 +6,9 @@
 
 #define XMODEM_PACKET_SIZE 128
 
+/**
+ * The different states that the internal xmodem state machine may be in
+ */
 typedef enum {
 	XMODEM_STATE_START,
 	XMODEM_STATE_SOH,
@@ -23,6 +26,9 @@ typedef enum {
 
 struct xmodem_server;
 
+/**
+ * Callback function to transmit a byte to the xmodem client
+ */
 typedef void (*xmodem_tx_byte)(struct xmodem_server *xdm, uint8_t byte, void *cb_data);
 
 /**
@@ -43,6 +49,13 @@ struct xmodem_server {
 	void *cb_data;
 };
 
+/**
+ * Initialise the internal xmodem server state
+ * @param xdm Xmodem server state area to initialise
+ * @param tx_byte callback to be called for ACK/NACK bytes
+ * @param cb_data user-supplied pointer to be supplied to the tx_byte function
+ * @return < 0 on failure, >= 0 on success
+ */
 int xmodem_server_init(struct xmodem_server *xdm, xmodem_tx_byte tx_byte, void *cb_data);
 
 /**
@@ -50,11 +63,40 @@ int xmodem_server_init(struct xmodem_server *xdm, xmodem_tx_byte tx_byte, void *
  * @returns true if a packet is now available for processing, false if more data is needed
  */
 bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte);
+
+/**
+ * Determine the current state of the xmodem transfer
+ */
 xmodem_server_state xmodem_server_get_state(const struct xmodem_server *xdm);
+
+/**
+ * Returns a human readable version of the current state
+ */
 const char *xmodem_server_state_name(const struct xmodem_server *xdm);
+
+/**
+ * Utility function for extending the XModem 16-bit CRC calculate by
+ * one byte.
+ * Note: This function should not normally be need to be called explicitly,
+ * it is provided to make writing test cases easier
+ */
 uint16_t xmodem_server_crc(uint16_t crc, uint8_t byte);
 
+/**
+ * Process the internal state and determine if there is a full packet ready
+ * This function should be called periodically to correctly process timeouts
+ * @param xdm xmodem_server state
+ * @param packet Area to store the next decoded packet. Must be at least XMODEM_PACKET_SIZE long
+ * @param block_num Area to store the 0-based index of the extracted block
+ * @param ms_time Current time in milliseconds (used to determine timeouts)
+ * @return false if no packet is available, true if 'packet' has been filled in
+ */
 bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t *block_num, int64_t ms_time);
+
+/**
+ * Determine if the transfer is complete (success or failure)
+ * @return true if the transfer has been finished, false otherwise
+ */
 bool xmodem_server_is_done(const struct xmodem_server *xdm);
 
 #endif
