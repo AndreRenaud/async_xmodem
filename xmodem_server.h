@@ -8,6 +8,10 @@
 #ifndef XMODEM_SERVER_H
 #define XMODEM_SERVER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -105,5 +109,9 @@ bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t 
  * @return true if the transfer has been finished, false otherwise
  */
 bool xmodem_server_is_done(const struct xmodem_server *xdm);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
