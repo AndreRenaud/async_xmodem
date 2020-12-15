@@ -175,7 +175,7 @@ static void tx_byte_fd(struct xmodem_server *xdm, uint8_t byte, void *cb_data)
 	(void)r;
 }
 
-static void test_lsz(void) {
+static void test_sz(void) {
 	uint8_t output_data[4096] = {0};
 	uint8_t input_data[4096];
 	for (int i = 0; i < 4096; i++) {
@@ -187,7 +187,7 @@ static void test_lsz(void) {
 	FILE *fp = fopen(raw_data_name, "wb");
 	TEST_CHECK(fwrite(input_data, sizeof(input_data), 1, fp) == 1);
 	fclose(fp);
-	char * const args[] = {"lsz", "--xmodem", "--quiet", raw_data_name, NULL};
+	char * const args[] = {"sz", "--xmodem", "--quiet", raw_data_name, NULL};
 	int wr_fd = -1, rd_fd = -1;
 	struct xmodem_server xdm;
 	pid_t pid = spawn_process(args, &rd_fd, &wr_fd);
@@ -240,6 +240,6 @@ TEST_LIST = {
 	{"simple", test_simple},
 	{"errors", test_errors},
 	{"timeout", test_timeout},
-	{"lsz", test_lsz},
+	{"sz", test_sz},
 	{NULL, NULL},
 };
