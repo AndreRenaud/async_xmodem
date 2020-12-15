@@ -4,6 +4,7 @@
 
 /* XMODEM protocol constants */
 #define XMODEM_SOH 0x01
+#define XMODEM_STX 0x02
 #define XMODEM_EOT 0x04
 #define XMODEM_ACK 0x06
 #define XMODEM_NACK 0x15
@@ -51,9 +52,15 @@ bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte) {
 	switch (xdm->state) {
 	case XMODEM_STATE_START:
 	case XMODEM_STATE_SOH:
-		if (byte == XMODEM_SOH)
+		if (byte == XMODEM_SOH) {
 			xdm->state = XMODEM_STATE_BLOCK_NUM;
-		else if (byte == XMODEM_EOT) {
+			xdm->packet_size = 128;
+#if XMODEM_MAX_PACKET_SIZE == 1024
+		} else if (byte == XMODEM_STX) {
+			xdm->state = XMODEM_STATE_BLOCK_NUM;
+			xdm->packet_size = 1024;
+#endif			
+		} else if (byte == XMODEM_EOT) {
 			xdm->state = XMODEM_STATE_SUCCESSFUL;
 			xdm->tx_byte(xdm, XMODEM_ACK, xdm->cb_data);
 		}
@@ -65,8 +72,10 @@ bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte) {
 		} else if (byte == (xdm->block_num & 0xff)) {
 			xdm->state = XMODEM_STATE_BLOCK_NEG;
 			xdm->repeating = true;
+		} else if (byte == XMODEM_SOH || byte == XMODEM_STX) {
+			xdm->state = XMODEM_STATE_BLOCK_NUM;
 		} else {
-			xdm->state = (byte == XMODEM_SOH ? XMODEM_STATE_BLOCK_NUM : XMODEM_STATE_SOH);
+			xdm->state = XMODEM_STATE_SOH;
 		}
 		break;
 
@@ -77,14 +86,16 @@ bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte) {
 		if (byte == neg_block) {
 			xdm->packet_pos = 0;
 			xdm->state = XMODEM_STATE_DATA;
+		} else if (byte == XMODEM_SOH || byte == XMODEM_STX) {
+			xdm->state = XMODEM_STATE_BLOCK_NUM;
 		} else {
-			xdm->state = (byte == XMODEM_SOH ? XMODEM_STATE_BLOCK_NUM : XMODEM_STATE_SOH);
+			xdm->state =XMODEM_STATE_SOH;
 		}
 		break;
 	}
 	case XMODEM_STATE_DATA:
 		xdm->packet_data[xdm->packet_pos++] = byte;
-		if (xdm->packet_pos >= XMODEM_PACKET_SIZE)
+		if (xdm->packet_pos >= xdm->packet_size)
 			xdm->state = XMODEM_STATE_CRC0;
 		break;
 
@@ -96,7 +107,7 @@ bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte) {
 	case XMODEM_STATE_CRC1: {
 		uint16_t crc = 0;
 		xdm->crc |= byte;
-		for (int i = 0; i < XMODEM_PACKET_SIZE; i++)
+		for (int i = 0; i < xdm->packet_size; i++)
 			crc = xmodem_server_crc(crc, xdm->packet_data[i]);
 		if (crc != xdm->crc) {
 			xdm->error_count++;
@@ -170,7 +181,7 @@ bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t 
 	if (xdm->state != XMODEM_STATE_PROCESS_PACKET)
 		return false;
 	xdm->last_event_time = ms_time;
-	memcpy(packet, xdm->packet_data, XMODEM_PACKET_SIZE);
+	memcpy(packet, xdm->packet_data, xdm->packet_size);
 	*block_num = xdm->block_num;
 	xdm->block_num++;
 	xdm->state = XMODEM_STATE_SOH;

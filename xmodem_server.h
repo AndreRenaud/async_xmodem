@@ -15,7 +15,16 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
-#define XMODEM_PACKET_SIZE 128
+/**
+ * Original XModem only supports 128B transfers, but Xmodem-1k supports up to
+ * 1k transfers. This is automatically detected by the presense of the STX
+ * instead of the SOH character as the transfer start.
+ * This must be defined to either 128 or 1024. Unless memory usage is a concern,
+ * this should be left at 1024
+ */
+#ifndef XMODEM_MAX_PACKET_SIZE
+#define XMODEM_MAX_PACKET_SIZE 1024
+#endif
 
 /**
  * The different states that the internal xmodem state machine may be in
@@ -49,9 +58,10 @@ typedef void (*xmodem_tx_byte)(struct xmodem_server *xdm, uint8_t byte, void *cb
  */
 struct xmodem_server {
 	xmodem_server_state state; // What state are we in?
-	uint8_t packet_data[XMODEM_PACKET_SIZE]; // Incoming packet data
+	uint8_t packet_data[XMODEM_MAX_PACKET_SIZE]; // Incoming packet data
 	int packet_pos; // Where are we up to in this packet
 	uint16_t crc; // Whatis the expected CRC of the incoming packet
+	uint16_t packet_size; // Are we receiving 128B or 1K packets?
 	bool repeating; // Are we receiving a packet that we've already processed?
 	int64_t last_event_time; // When did we last do something interesting?
 	uint32_t block_num; // What block are we up to?
@@ -97,7 +107,7 @@ uint16_t xmodem_server_crc(uint16_t crc, uint8_t byte);
  * Process the internal state and determine if there is a full packet ready
  * This function should be called periodically to correctly process timeouts
  * @param xdm xmodem_server state
- * @param packet Area to store the next decoded packet. Must be at least XMODEM_PACKET_SIZE long
+ * @param packet Area to store the next decoded packet. Must be at least XMODEM_MAX_PACKET_SIZE long. xdm->packet_size bytes will be copied in here
  * @param block_num Area to store the 0-based index of the extracted block
  * @param ms_time Current time in milliseconds (used to determine timeouts)
  * @return false if no packet is available, true if 'packet' has been filled in

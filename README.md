@@ -7,9 +7,9 @@ It is designed to be used in bare-metal embedded systems with no
 underlying operating system. It is asynchonous (non-blocking), and
 all data is either directly supplied or sent out via callbacks,
 with no OS-level dependencies. It does not allocate any dynamic memory,
-using only 164B of memory while the transfer is in progress, with a very
-shallow stack (3-calls deep maximum). It is approximately 1kB of ARM-thumb2
-compiled code.
+using only 164B (1080B if large packet sizes are used) of memory while
+the transfer is in progress, with a very shallow stack (3-calls deep
+maximum). It is approximately 1kB of ARM-thumb2 compiled code.
 
 ## Usage
 This is a simple single .c & .h file, designed to be directly imported into
