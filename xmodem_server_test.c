@@ -81,12 +81,14 @@ static void test_errors(void) {
 		uint8_t data[1024];
 		uint8_t resp[1024];
 		uint32_t block_nr;
+		int data_len;
 		memset(data, i, sizeof(data));
 		tx_char = 0;
 		// Inject 1:1000 rate of bad data bytes
 		rx_packet(&xdm, data, sizeof(data), i, 5000);
-		if (xmodem_server_process(&xdm, resp, &block_nr, ms_time())) {
-			TEST_ASSERT(memcmp(data, resp, sizeof(data)) == 0);
+		data_len = xmodem_server_process(&xdm, resp, &block_nr, ms_time());
+		if (data_len > 0) {
+			TEST_ASSERT(memcmp(data, resp, data_len) == 0);
 			TEST_ASSERT(block_nr == i);
 			i++;
 		}
@@ -210,6 +212,8 @@ static void test_sz(bool use_1k, size_t data_size) {
 		FD_SET(wr_fd, &wr_fds);
 		struct timeval tv;
 		int max_fd = rd_fd;
+		int data_len;
+
 		if (wr_fd > max_fd)
 			max_fd = wr_fd;
 		tv.tv_sec = 0;
@@ -224,8 +228,9 @@ static void test_sz(bool use_1k, size_t data_size) {
 					xmodem_server_rx_byte(&xdm, buffer[i]);
 				}
 			}
-			if (xmodem_server_process(&xdm, resp, &block_nr, ms_time())) {
-				memcpy(&output_data[block_nr * xdm.packet_size], resp, xdm.packet_size);
+			data_len = xmodem_server_process(&xdm, resp, &block_nr, ms_time());
+			if (data_len > 0) {
+				memcpy(&output_data[block_nr * xdm.packet_size], resp, data_len);
 			}
 		}
 	}

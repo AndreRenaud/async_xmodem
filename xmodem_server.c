@@ -154,9 +154,9 @@ bool xmodem_server_is_done(const struct xmodem_server *xdm) {
 	return xdm->state == XMODEM_STATE_SUCCESSFUL || xdm->state == XMODEM_STATE_FAILURE;
 }
 
-bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t *block_num, int64_t ms_time) {
+int xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t *block_num, int64_t ms_time) {
 	if (xmodem_server_is_done(xdm))
-		return false;
+		return 0;
 	// Avoid confusion with 0 default value
 	if (ms_time == 0)
 		ms_time = 1;
@@ -179,12 +179,12 @@ bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t 
 		xdm->last_event_time = ms_time;
 	}
 	if (xdm->state != XMODEM_STATE_PROCESS_PACKET)
-		return false;
+		return 0;
 	xdm->last_event_time = ms_time;
 	memcpy(packet, xdm->packet_data, xdm->packet_size);
 	*block_num = xdm->block_num;
 	xdm->block_num++;
 	xdm->state = XMODEM_STATE_SOH;
 	xdm->tx_byte(xdm, XMODEM_ACK, xdm->cb_data);
-	return true;
+	return xdm->packet_size;
 }

@@ -18,6 +18,8 @@ most existing code bases without issue.
 For most usage, there are four functions which are of interest
 * `xmodem_server_init` - initialise the state, and provide the callback for
 transmitting individual response bytes
+* `xmodem_server_rx_byte` - insert a byte of incoming data into the server
+(typically from a UART)
 * `xmodem_server_process` - check for timeouts, and extract the next packet
 if available
 * `xmodem_server_is_done` - indicates when the transfer is completed
@@ -30,10 +32,15 @@ struct xmodem_server xdm;
 
 xmodem_server_init(&xdm, uart_tx_char, NULL);
 while (!xmodem_server_is_done(&xdm)) {
-	uint8_t resp[XMODEM_PACKET_SIZE];
+	uint8_t resp[XMODEM_MAX_PACKET_SIZE];
 	uint32_t block_nr;
-	if (xmodem_server_process(&xdm, resp, &block_nr, ms_time()))
-		handle_incoming_packet(resp, block_nr);
+	int rx_data_len;
+
+	if (uart_has_data())
+		xmodem_server_rx_byte(uart_read());
+	rx_data_len = xmodem_server_process(&xdm, resp, &block_nr, ms_time());
+	if (rx_data_len > 0)
+		handle_incoming_packet(resp, rx_data_len, block_nr);
 }
 if (xmodem_server_get_state(&xdm) == XMODEM_STATE_FAILURE)
 	handle_transfer_failure();

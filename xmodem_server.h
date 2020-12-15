@@ -110,9 +110,9 @@ uint16_t xmodem_server_crc(uint16_t crc, uint8_t byte);
  * @param packet Area to store the next decoded packet. Must be at least XMODEM_MAX_PACKET_SIZE long. xdm->packet_size bytes will be copied in here
  * @param block_num Area to store the 0-based index of the extracted block
  * @param ms_time Current time in milliseconds (used to determine timeouts)
- * @return false if no packet is available, true if 'packet' has been filled in
+ * @return Number of bytes of data copied into 'packet' (either 128, or 1024), or 0 if no new packet is available
  */
-bool xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t *block_num, int64_t ms_time);
+int xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t *block_num, int64_t ms_time);
 
 /**
  * Determine if the transfer is complete (success or failure)
