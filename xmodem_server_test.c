@@ -192,8 +192,8 @@ static void test_sz(bool use_1k, size_t data_size) {
 	FILE *fp = fopen(raw_data_name, "wb");
 	TEST_ASSERT(fwrite(input_data, data_size, 1, fp) == 1);
 	fclose(fp);
-	char * const args_1k[] = {"lsz", "--xmodem", "--1k", "--quiet", raw_data_name, NULL};
-	char * const args_128[] = {"lsz", "--xmodem", "--quiet", raw_data_name, NULL};
+	char * const args_1k[] = {"sz", "--xmodem", "--1k", "--quiet", raw_data_name, NULL};
+	char * const args_128[] = {"sz", "--xmodem", "--quiet", raw_data_name, NULL};
 	char * const *args = use_1k ? args_1k : args_128;
 	int wr_fd = -1, rd_fd = -1;
 	struct xmodem_server xdm;
@@ -258,7 +258,7 @@ TEST_LIST = {
 	{"simple", test_simple},
 	{"errors", test_errors},
 	{"timeout", test_timeout},
-	{"lsz (128B)", test_sz_128},
-	{"lsz (1kB)", test_sz_1k},
+	{"sz (128B)", test_sz_128},
+	{"sz (1kB)", test_sz_1k},
 	{NULL, NULL},
 };
