@@ -13,6 +13,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
               cppcheck \
-              lrzsz
+              lrzsz \
+              valgrind
       - name: Build and Test
-        run: make test
+        run: |
+          make
+          valgrind --leak-check=full --error-exitcode=1 ./xmodem_server_test
