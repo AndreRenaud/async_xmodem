@@ -13,6 +13,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
               cppcheck \
-              lsz
+              lrzsz
       - name: Build and Test
         run: make test
