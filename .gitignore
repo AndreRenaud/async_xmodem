@@ -1,2 +1,3 @@
 *.o
 xmodem_server_test
+test-results.xml
