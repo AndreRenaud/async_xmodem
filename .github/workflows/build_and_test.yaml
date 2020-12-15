@@ -18,10 +18,10 @@ jobs:
       - name: Build and Test
         run: |
           make
-          valgrind --leak-check=full --error-exitcode=1 ./xmodem_server_test
+          valgrind --leak-check=full --error-exitcode=1 ./xmodem_server_test --xml-output=test-results.xml
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1.6
         if: always()
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          files: test-results/**/*.xml
+          files: test-results.xml
