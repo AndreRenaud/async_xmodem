@@ -1,5 +1,5 @@
 # Asynchonous XModem Receiver
-[![CircleCI](https://circleci.com/gh/AndreRenaud/async_xmodem.svg?style=svg)](https://circleci.com/gh/AndreRenaud/async_xmodem)
+Build status: [![GitHub Actions](https://github.com/AndreRenaud/async_xmodem/workflows/Build%20and%20Test/badge.svg)](https://github.com/AndreRenaud/async_xmodem/actions)
 
 This is a minimal C implementation of the 
 [XModem](https://en.wikipedia.org/wiki/XMODEM) transfer protocol.
