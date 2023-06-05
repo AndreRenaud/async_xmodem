@@ -30,7 +30,7 @@ if available
 ```c
 struct xmodem_server xdm;
 
-xmodem_server_init(&xdm, uart_tx_char, NULL);
+xmodem_server_init(&xdm, uart_tx_char, false, NULL);
 while (!xmodem_server_is_done(&xdm)) {
 	uint8_t resp[XMODEM_MAX_PACKET_SIZE];
 	uint32_t block_nr;
