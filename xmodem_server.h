@@ -61,8 +61,8 @@ struct xmodem_server {
 	uint8_t packet_data[XMODEM_MAX_PACKET_SIZE]; // Incoming packet data
 	int packet_pos; // Where are we up to in this packet
 	uint16_t crc; // What is the expected CRC of the incoming packet
-	bool crc_8_bit; // If using 128B packets, force the original 8-bit checksum, not 16-bit CRC
 	uint16_t packet_size; // Are we receiving 128B or 1K packets?
+	bool crc_8_bit; // If using 128B packets, force the original 8-bit checksum, not 16-bit CRC
 	bool repeating; // Are we receiving a packet that we've already processed?
 	int64_t last_event_time; // When did we last do something interesting?
 	uint32_t block_num; // What block are we up to?
