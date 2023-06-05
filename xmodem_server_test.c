@@ -52,7 +52,7 @@ static void test_simple(void) {
 	struct xmodem_server xdm;
 	uint8_t tx_char = 0;
 
-	TEST_ASSERT(xmodem_server_init(&xdm, tx_byte, &tx_char) >= 0);
+	TEST_ASSERT(xmodem_server_init(&xdm, tx_byte, false, &tx_char) >= 0);
 	for (uint32_t i = 0; i < 5; i++) {
 		uint8_t data[128];
 		uint8_t resp[128];
@@ -74,9 +74,8 @@ static void test_simple(void) {
 static void test_errors(void) {
 	struct xmodem_server xdm;
 	uint8_t tx_char = 0;
-	int attempts = 0;
 
-	TEST_ASSERT(xmodem_server_init(&xdm, tx_byte, &tx_char) >= 0);
+	TEST_ASSERT(xmodem_server_init(&xdm, tx_byte, false, &tx_char) >= 0);
 	for (uint32_t i = 0; i < 5 && !xmodem_server_is_done(&xdm); ) {
 		uint8_t data[1024];
 		uint8_t resp[1024];
@@ -92,7 +91,6 @@ static void test_errors(void) {
 			TEST_ASSERT(block_nr == i);
 			i++;
 		}
-		attempts++;
 	}
 	xmodem_server_rx_byte(&xdm, 0x04);
 	TEST_ASSERT(xmodem_server_get_state(&xdm) == XMODEM_STATE_SUCCESSFUL);
@@ -102,7 +100,7 @@ static void test_errors(void) {
 static void test_timeout(void) {
 	struct xmodem_server xdm;
 	uint8_t tx_char = 0;
-	TEST_ASSERT(xmodem_server_init(&xdm, tx_byte, &tx_char) >= 0);
+	TEST_ASSERT(xmodem_server_init(&xdm, tx_byte, false, &tx_char) >= 0);
 
 	// Transmit 1 packet so we're not in the initial phase
 	uint8_t data[XMODEM_MAX_PACKET_SIZE] = {0};
@@ -202,7 +200,7 @@ static void test_sz(bool use_1k, size_t data_size) {
 	pid_t pid = spawn_process(args, &rd_fd, &wr_fd);
 	uint32_t block_nr;
 	TEST_ASSERT(pid >= 0);
-	TEST_ASSERT(xmodem_server_init(&xdm, tx_byte_fd, &wr_fd) >= 0);
+	TEST_ASSERT(xmodem_server_init(&xdm, tx_byte_fd, !use_1k, &wr_fd) >= 0);
 
 	while (!xmodem_server_is_done(&xdm)) {
 		fd_set rd_fds, wr_fds;

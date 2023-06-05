@@ -9,6 +9,7 @@
 #define XMODEM_ACK 0x06
 #define XMODEM_NACK 0x15
 #define XMODEM_CAN 0x18
+#define XMODEM_WANTCRC 'C'
 
 // How many milliseconds do we have to wait for a packet to arrive before
 // we send a NAK & restart the transfer
@@ -95,8 +96,10 @@ bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte) {
 	}
 	case XMODEM_STATE_DATA:
 		xdm->packet_data[xdm->packet_pos++] = byte;
-		if (xdm->packet_pos >= xdm->packet_size)
-			xdm->state = XMODEM_STATE_CRC0;
+		if (xdm->packet_pos >= xdm->packet_size) {
+			xdm->crc = 0;
+			xdm->state = xdm->crc_8_bit ? XMODEM_STATE_CRC1 : XMODEM_STATE_CRC0;
+		}
 		break;
 
 	case XMODEM_STATE_CRC0:
@@ -107,8 +110,14 @@ bool xmodem_server_rx_byte(struct xmodem_server *xdm, uint8_t byte) {
 	case XMODEM_STATE_CRC1: {
 		uint16_t crc = 0;
 		xdm->crc |= byte;
-		for (int i = 0; i < xdm->packet_size; i++)
-			crc = xmodem_server_crc(crc, xdm->packet_data[i]);
+		if (xdm->crc_8_bit) {
+			for (int i = 0; i < xdm->packet_size; i++)
+				crc += xdm->packet_data[i];
+			crc &= 0xff;
+		} else {
+			for (int i = 0; i < xdm->packet_size; i++)
+				crc = xmodem_server_crc(crc, xdm->packet_data[i]);
+		}
 		if (crc != xdm->crc) {
 			xdm->error_count++;
 			xdm->state = XMODEM_STATE_SOH;
@@ -134,14 +143,15 @@ const char *xmodem_server_state_name(const struct xmodem_server *xdm)
 	return state_name(xdm->state);
 }
 
-int xmodem_server_init(struct xmodem_server *xdm, xmodem_tx_byte tx_byte, void *cb_data) {
+int xmodem_server_init(struct xmodem_server *xdm, xmodem_tx_byte tx_byte, bool force_8_bit_checksum, void *cb_data) {
 	if (!tx_byte)
 		return -1;
 	memset(xdm, 0, sizeof(*xdm));
 	xdm->tx_byte = tx_byte;
 	xdm->cb_data = cb_data;
+	xdm->crc_8_bit = force_8_bit_checksum;
 
-	xdm->tx_byte(xdm, 'C', xdm->cb_data);
+	xdm->tx_byte(xdm, xdm->crc_8_bit ? XMODEM_NACK : XMODEM_WANTCRC, xdm->cb_data);
 
 	return 0;
 }
@@ -164,7 +174,7 @@ int xmodem_server_process(struct xmodem_server *xdm, uint8_t *packet, uint32_t *
 	if (xdm->last_event_time == 0)
 		xdm->last_event_time = ms_time;
 	if (xdm->state == XMODEM_STATE_START && ms_time - xdm->last_event_time > 500) {
-		xdm->tx_byte(xdm, 'C', xdm->cb_data);
+		xdm->tx_byte(xdm, xdm->crc_8_bit ? XMODEM_NACK : XMODEM_WANTCRC, xdm->cb_data);
 		xdm->last_event_time = ms_time;
 	}
 	if (ms_time - xdm->last_event_time > XMODEM_PACKET_TIMEOUT) {

@@ -60,8 +60,9 @@ struct xmodem_server {
 	xmodem_server_state state; // What state are we in?
 	uint8_t packet_data[XMODEM_MAX_PACKET_SIZE]; // Incoming packet data
 	int packet_pos; // Where are we up to in this packet
-	uint16_t crc; // Whatis the expected CRC of the incoming packet
+	uint16_t crc; // What is the expected CRC of the incoming packet
 	uint16_t packet_size; // Are we receiving 128B or 1K packets?
+	bool crc_8_bit; // If using 128B packets, force the original 8-bit checksum, not 16-bit CRC
 	bool repeating; // Are we receiving a packet that we've already processed?
 	int64_t last_event_time; // When did we last do something interesting?
 	uint32_t block_num; // What block are we up to?
@@ -74,10 +75,11 @@ struct xmodem_server {
  * Initialise the internal xmodem server state
  * @param xdm Xmodem server state area to initialise
  * @param tx_byte callback to be called for ACK/NACK bytes
+ * @param force_8_bit_checksum if set, use original 8-bit checksum responses. If not set, use newer 16-bit CRC (XMODEM-CRC)
  * @param cb_data user-supplied pointer to be supplied to the tx_byte function
  * @return < 0 on failure, >= 0 on success
  */
-int xmodem_server_init(struct xmodem_server *xdm, xmodem_tx_byte tx_byte, void *cb_data);
+int xmodem_server_init(struct xmodem_server *xdm, xmodem_tx_byte tx_byte, bool force_8_bit_checksum, void *cb_data);
 
 /**
  * Send a single byte to the xmodem state machine
