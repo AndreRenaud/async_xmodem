@@ -1728,6 +1728,7 @@ main(int argc, char** argv)
     }
 
     if (test_xml_output_) {
+        double duration_total = 0;
 #if defined ACUTEST_UNIX_
         char *suite_name = basename(argv[0]);
 #elif defined ACUTEST_WIN_
@@ -1737,8 +1738,11 @@ main(int argc, char** argv)
         const char *suite_name = argv[0];
 #endif
         fprintf(test_xml_output_, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        fprintf(test_xml_output_, "<testsuite name=\"%s\" tests=\"%d\" errors=\"%d\" failures=\"%d\" skip=\"%d\">\n",
-            suite_name, (int)test_list_size_, test_stat_failed_units_, test_stat_failed_units_,
+        for(i = 0; test_list_[i].func != NULL; i++) {
+            duration_total += test_details_[i].duration;
+        }
+        fprintf(test_xml_output_, "<testsuite name=\"%s\" tests=\"%d\" time=\"%.2f\" errors=\"%d\" failures=\"%d\" skip=\"%d\">\n",
+            suite_name, (int)test_list_size_, duration_total, test_stat_failed_units_, test_stat_failed_units_,
             (int)test_list_size_ - test_stat_run_units_);
         for(i = 0; test_list_[i].func != NULL; i++) {
             struct test_detail_ *details = &test_details_[i];
